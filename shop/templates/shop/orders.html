@@ -1,0 +1,126 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}E-Commerce Store - My Orders{% endblock %}
+
+{% block content %}
+<h1 style="font-size: 2.2rem; font-weight: 700; margin-bottom: 2rem;">My Orders</h1>
+
+<div id="loading-spinner" style="text-align: center; padding: 5rem;">
+    <i class="fa-solid fa-spinner fa-spin fa-2xl" style="color: var(--accent);"></i>
+</div>
+
+<!-- Empty Orders State -->
+<div id="empty-orders" class="empty-state" style="display: none;">
+    <div class="empty-state-icon"><i class="fa-solid fa-receipt"></i></div>
+    <h2>No Orders Placed Yet</h2>
+    <p>Once you complete a purchase, your orders will appear here.</p>
+    <a href="{% url 'index' %}" class="btn btn-primary btn-icon">
+        <i class="fa-solid fa-store"></i> Browse Catalog
+    </a>
+</div>
+
+<!-- Orders Container List -->
+<div id="orders-container" class="orders-list" style="display: none;">
+    <!-- Populated dynamically via javascript -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadOrders();
+    });
+
+    async function loadOrders() {
+        const container = document.getElementById('orders-container');
+        const emptyState = document.getElementById('empty-orders');
+        const spinner = document.getElementById('loading-spinner');
+
+        try {
+            const res = await fetch('/api/orders/');
+            if (res.status === 401) {
+                spinner.style.display = 'none';
+                emptyState.innerHTML = `
+                    <div class="empty-state-icon"><i class="fa-solid fa-lock"></i></div>
+                    <h2>Please Log In</h2>
+                    <p>You must be logged in to view your order history.</p>
+                    <a href="{% url 'login_page' %}?next=/orders/" class="btn btn-primary">Login Now</a>
+                `;
+                emptyState.style.display = 'flex';
+                return;
+            }
+
+            const data = await res.json();
+            const orders = data.orders || [];
+
+            if (orders.length === 0) {
+                spinner.style.display = 'none';
+                emptyState.style.display = 'flex';
+                container.style.display = 'none';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            orders.forEach(order => {
+                const card = document.createElement('div');
+                card.className = 'order-card';
+
+                const statusClass = `status-${order.status.toLowerCase()}`;
+                
+                let itemsHtml = '';
+                order.items.forEach(item => {
+                    itemsHtml += `
+                        <tr class="order-item-tr">
+                            <td class="order-item-td order-item-name">${item.product_name}</td>
+                            <td class="order-item-td order-item-qty">Qty: ${item.quantity}</td>
+                            <td class="order-item-td order-item-price">₹${item.price.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="order-header">
+                        <div class="order-info-grp">
+                            <div class="order-info-item">
+                                <span class="order-info-label">Order Placed</span>
+                                <span class="order-info-value">${order.created_at}</span>
+                            </div>
+                            <div class="order-info-item">
+                                <span class="order-info-label">Total Amount</span>
+                                <span class="order-info-value" style="font-weight: 700;">₹${order.total_price.toFixed(2)}</span>
+                            </div>
+                            <div class="order-info-item">
+                                <span class="order-info-label">Ship To</span>
+                                <span class="order-info-value" title="${order.shipping_address}">${order.shipping_name}</span>
+                            </div>
+                            <div class="order-info-item">
+                                <span class="order-info-label">Order ID</span>
+                                <span class="order-info-value">#${order.id}</span>
+                            </div>
+                        </div>
+                        <span class="order-status ${statusClass}">${order.status}</span>
+                    </div>
+                    <div class="order-body">
+                        <table class="order-items-table">
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            spinner.style.display = 'none';
+            emptyState.style.display = 'none';
+            container.style.display = 'flex';
+
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+            window.showNotification('Failed to load order history.', 'error');
+            spinner.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

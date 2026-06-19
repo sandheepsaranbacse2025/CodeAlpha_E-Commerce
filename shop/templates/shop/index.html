@@ -1,0 +1,120 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}E-Commerce Store - Modern E-Commerce{% endblock %}
+
+{% block content %}
+<section class="hero-section">
+    <h1 class="hero-title">Elevated Shopping Experience</h1>
+    <p class="hero-subtitle">Discover our curated selection of premium electronics, design assets, and smart accessories, styled for the modern lifestyle.</p>
+</section>
+
+<div class="catalog-actions">
+    <!-- Search Bar -->
+    <div class="search-bar">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="search-input" class="search-input" placeholder="Search products...">
+    </div>
+</div>
+
+<!-- Products Display Area -->
+<div id="loading-spinner" style="text-align: center; padding: 3rem;">
+    <i class="fa-solid fa-spinner fa-spin fa-2xl" style="color: var(--accent);"></i>
+</div>
+
+<div id="empty-state" class="empty-state" style="display: none;">
+    <div class="empty-state-icon"><i class="fa-solid fa-box-open"></i></div>
+    <h2>No Products Found</h2>
+    <p>We couldn't find any products matching your criteria. Try adjusting your search query.</p>
+</div>
+
+<div id="products-grid" class="product-grid" style="display: none;">
+    <!-- Rendered dynamically by app.js -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProducts();
+        
+        const searchInput = document.getElementById('search-input');
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadProducts(e.target.value);
+            }, 300);
+        });
+    });
+
+    async function loadProducts(search = '') {
+        const grid = document.getElementById('products-grid');
+        const spinner = document.getElementById('loading-spinner');
+        const emptyState = document.getElementById('empty-state');
+        
+        spinner.style.display = 'block';
+        grid.style.display = 'none';
+        emptyState.style.display = 'none';
+
+        try {
+            const res = await fetch(`/api/products/?search=${encodeURIComponent(search)}`);
+            const data = await res.json();
+            
+            grid.innerHTML = '';
+            
+            if (!data.products || data.products.length === 0) {
+                emptyState.style.display = 'flex';
+                spinner.style.display = 'none';
+                return;
+            }
+
+            data.products.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                
+                const badge = p.stock > 0 
+                    ? `<span class="product-badge">${p.stock} in stock</span>`
+                    : `<span class="product-badge out-of-stock">Out of Stock</span>`;
+                
+                card.innerHTML = `
+                    <div class="product-img-wrapper">
+                        <img src="${p.image_url || 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${p.name}" class="product-img" onerror="this.src='https://via.placeholder.com/400x300?text=No+Image'">
+                        ${badge}
+                    </div>
+                    <div class="product-info">
+                        <h3 class="product-name">${p.name}</h3>
+                        <p class="product-desc">${p.description}</p>
+                        <div class="product-footer">
+                            <span class="product-price">₹${p.price.toFixed(2)}</span>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="/product/${p.id}/" class="btn btn-secondary btn-icon" title="View Details">
+                                    <i class="fa-solid fa-eye"></i>
+                                </a>
+                                <button class="btn btn-primary btn-icon add-to-cart-btn" data-product-id="${p.id}" ${p.stock <= 0 ? 'disabled' : ''}>
+                                    <i class="fa-solid fa-cart-plus"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // Attach cart click handlers
+            grid.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const productId = btn.getAttribute('data-product-id');
+                    await window.addToCart(productId, 1);
+                });
+            });
+
+            spinner.style.display = 'none';
+            grid.style.display = 'grid';
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            window.showNotification('Failed to load products. Please try again.', 'error');
+            spinner.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

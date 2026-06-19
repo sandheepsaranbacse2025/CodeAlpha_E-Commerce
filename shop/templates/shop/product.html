@@ -1,0 +1,133 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}E-Commerce Store - Product Details{% endblock %}
+
+{% block content %}
+<a href="{% url 'index' %}" class="btn btn-secondary btn-icon" style="margin-bottom: 2rem;">
+    <i class="fa-solid fa-arrow-left"></i> Back to Catalog
+</a>
+
+<div id="loading-spinner" style="text-align: center; padding: 5rem;">
+    <i class="fa-solid fa-spinner fa-spin fa-2xl" style="color: var(--accent);"></i>
+</div>
+
+<div id="product-detail-container" class="product-detail-wrapper" style="display: none;">
+    <!-- Detail Image -->
+    <div class="detail-img-card">
+        <img id="product-img" src="" alt="Product Image" class="detail-img" onerror="this.src='https://via.placeholder.com/600x500?text=No+Image'">
+    </div>
+
+    <!-- Detail Meta & Options -->
+    <div class="detail-info">
+        <div>
+            <span id="product-stock-badge" class="product-badge" style="position: static; margin-bottom: 1rem; display: inline-block;"></span>
+            <h1 id="product-name" style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;"></h1>
+            <div id="product-price" class="detail-price"></div>
+        </div>
+
+        <p id="product-desc" class="detail-desc"></p>
+
+        <!-- Purchase options -->
+        <div style="margin-top: 1.5rem;">
+            <div class="qty-selector">
+                <span class="form-label" style="margin: 0; font-size: 1rem;">Quantity:</span>
+                <button id="qty-minus" class="qty-btn"><i class="fa-solid fa-minus"></i></button>
+                <input type="text" id="qty-input" class="qty-input" value="1" readonly>
+                <button id="qty-plus" class="qty-btn"><i class="fa-solid fa-plus"></i></button>
+            </div>
+
+            <button id="add-to-cart-btn" class="btn btn-primary btn-full btn-icon" style="padding: 1rem; font-size: 1rem;">
+                <i class="fa-solid fa-cart-plus"></i> Add to Shopping Cart
+            </button>
+        </div>
+
+        <div class="detail-meta">
+            <div class="detail-meta-item">
+                <i class="fa-solid fa-truck-fast"></i> <strong>Free Shipping:</strong> Ordered items dispatch within 24 hours.
+            </div>
+            <div class="detail-meta-item">
+                <i class="fa-solid fa-shield-halved"></i> <strong>Secure Checkout:</strong> SSL Encryption on all operations.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const productId = "{{ product_id }}";
+    let productStock = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProductDetails();
+    });
+
+    async function loadProductDetails() {
+        const container = document.getElementById('product-detail-container');
+        const spinner = document.getElementById('loading-spinner');
+
+        try {
+            const res = await fetch(`/api/products/${productId}/`);
+            if (!res.ok) {
+                window.showNotification('Product not found.', 'error');
+                window.location.href = "{% url 'index' %}";
+                return;
+            }
+
+            const data = await res.json();
+            const p = data.product;
+            productStock = p.stock;
+
+            // Update UI elements
+            document.getElementById('product-img').src = p.image_url || 'https://via.placeholder.com/600x500?text=No+Image';
+            document.getElementById('product-name').textContent = p.name;
+            document.getElementById('product-price').textContent = `₹${p.price.toFixed(2)}`;
+            document.getElementById('product-desc').textContent = p.description;
+
+            const badge = document.getElementById('product-stock-badge');
+            const addBtn = document.getElementById('add-to-cart-btn');
+            
+            if (p.stock > 0) {
+                badge.textContent = `${p.stock} units available`;
+                badge.className = 'product-badge';
+                badge.style.color = 'var(--success)';
+                badge.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+            } else {
+                badge.textContent = 'Out of Stock';
+                badge.className = 'product-badge out-of-stock';
+                badge.style.color = 'var(--danger)';
+                badge.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                addBtn.disabled = true;
+                addBtn.innerHTML = '<i class="fa-solid fa-ban"></i> Out of Stock';
+            }
+
+            // Quantity buttons setup
+            const qtyInput = document.getElementById('qty-input');
+            const minusBtn = document.getElementById('qty-minus');
+            const plusBtn = document.getElementById('qty-plus');
+
+            minusBtn.addEventListener('click', () => {
+                let val = parseInt(qtyInput.value);
+                if (val > 1) qtyInput.value = val - 1;
+            });
+
+            plusBtn.addEventListener('click', () => {
+                let val = parseInt(qtyInput.value);
+                if (val < productStock) qtyInput.value = val + 1;
+            });
+
+            // Add to Cart Action
+            addBtn.addEventListener('click', async () => {
+                const qty = parseInt(qtyInput.value);
+                await window.addToCart(p.id, qty);
+            });
+
+            spinner.style.display = 'none';
+            container.style.display = 'grid';
+        } catch (error) {
+            console.error('Error fetching product details:', error);
+            window.showNotification('Failed to load product details.', 'error');
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}E-Commerce Store{% endblock %}</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="{% static 'shop/styles.css' %}">
+</head>
+<body>
+
+    <!-- Notification Alert Banner Container -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Navigation Header -->
+    <header>
+        <div class="container navbar">
+            <a href="{% url 'index' %}" class="logo">
+                <i class="fa-solid fa-store"></i> E-Commerce<span> Store</span>
+            </a>
+            
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="{% url 'index' %}" class="nav-link {% if request.resolver_match.url_name == 'index' %}active{% endif %}">Shop</a></li>
+                    <li><a href="{% url 'orders_page' %}" class="nav-link {% if request.resolver_match.url_name == 'orders_page' %}active{% endif %}" id="nav-orders-link" style="display: none;">My Orders</a></li>
+                </ul>
+            </nav>
+
+            <div class="nav-actions">
+                <!-- Cart Button -->
+                <a href="{% url 'cart_page' %}" class="cart-icon-btn" title="View Cart">
+                    <i class="fa-solid fa-shopping-bag"></i>
+                    <span id="cart-badge" class="cart-badge" style="display: none;">0</span>
+                </a>
+
+                <!-- User Account Actions -->
+                <div id="auth-nav-section" class="user-menu">
+                    <!-- Loaded dynamically via app.js -->
+                    <a href="{% url 'login_page' %}" class="btn btn-secondary">Login</a>
+                    <a href="{% url 'register_page' %}" class="btn btn-primary">Register</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="container">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-layout">
+            <div>
+                <p>&copy; 2026 E-Commerce Store. Designed for excellence.</p>
+            </div>
+            <div style="display: flex; gap: 1.5rem;">
+                <a href="{% url 'index' %}" class="nav-link">Shop</a>
+                <a href="{% url 'cart_page' %}" class="nav-link">Cart</a>
+                <a href="/admin/" target="_blank" class="nav-link"><i class="fa-solid fa-lock"></i> Admin Panel</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Shared App JS Logic -->
+    <script src="{% static 'shop/app.js' %}"></script>
+    {% block scripts %}
+    {% endblock %}
+</body>
+</html>

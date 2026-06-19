@@ -1,0 +1,85 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}E-Commerce Store - Sign In{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Sign in to your premium shopping account</p>
+
+        <form id="login-form" style="margin-top: 1rem;">
+            <div class="form-group">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" id="username" class="form-input" required placeholder="Enter your username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" class="form-input" required placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full btn-icon" style="padding: 0.8rem; margin-top: 1.5rem;">
+                Sign In <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Don't have an account? <a href="{% url 'register_page' %}">Create account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('login-form');
+        form.addEventListener('submit', handleLogin);
+    });
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Signing In...';
+
+        try {
+            const res = await fetch('/api/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                window.showNotification('Welcome back, ' + username + '!', 'success');
+                // Sync auth status in base layout
+                if (window.syncAuthNav) await window.syncAuthNav();
+                if (window.syncCartBadge) await window.syncCartBadge();
+                
+                // Redirect back to next page if specified, or shop homepage
+                const urlParams = new URLSearchParams(window.location.search);
+                const nextUrl = urlParams.get('next') || "{% url 'index' %}";
+                setTimeout(() => {
+                    window.location.href = nextUrl;
+                }, 1500);
+            } else {
+                window.showNotification(data.error || 'Invalid credentials.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Sign In <i class="fa-solid fa-arrow-right-to-bracket"></i>';
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            window.showNotification('An error occurred during sign in.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Sign In <i class="fa-solid fa-arrow-right-to-bracket"></i>';
+        }
+    }
+</script>
+{% endblock %}
