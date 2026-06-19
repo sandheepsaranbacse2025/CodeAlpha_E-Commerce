@@ -1,4 +1,3 @@
-# CodeAlpha_E-Commerce
 # CodeAlpha E-Commerce
 
 A modern E-Commerce web application developed as part of the CodeAlpha Internship Program. The platform provides a seamless online shopping experience with product browsing, cart management, user authentication, and order processing features.
